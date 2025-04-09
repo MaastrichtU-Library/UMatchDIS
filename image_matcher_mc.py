@@ -23,17 +23,20 @@ os.makedirs(target_folder, exist_ok=True)
 # Load images from a folder
 needle_image_list = Load_Data().from_folder([input_needle_folder_name])
 haystack_image_list = Load_Data().from_folder([input_haystack_folder_name])
+all_images_list = Load_Data().from_folder([input_needle_folder_name, input_haystack_folder_name])
 
 print("Total Reference images count:",len(needle_image_list))
 print("Total Haystack images count:",len(haystack_image_list))
 
 # Set up the search engine
-st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True,image_count=100)
+#st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True,image_count=100)
+st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True)
 
-# Index the reference (needle) images
+
+# Index the reference (needle) images (i.e. Extract features from images and indexes them)
 st.run_index()
 
-# Add to-be-matched (haystack) images to the index
+# Add to-be-matched (haystack) images to the index (i.e. appends the feature vectors of the new images to the index)
 st.add_images_to_index(haystack_image_list)
 
 # Update metadata
@@ -56,20 +59,32 @@ for i in tqdm(range(0,len(needle_image_list)), desc="Finding similar images"):
     thumb_file_path = needle_image_list[i]
 
     # Find 2 similar images and take the last one (the first is always the original thumbnail, because: perfect match))
-    similar_img_path = list(st.get_similar_images(image_path=needle_image_list[i], number_of_images=2).values())[-1]
+    # similar_img_path = list(st.get_similar_images(image_path=needle_image_list[i], number_of_images=2).values())[-1]
+
+    # Find first 5 similar images and take the first match from the `highres` folder
+    matches = list(st.get_similar_images(image_path=needle_image_list[i], number_of_images=5).values())
+    similar_img_path = ""
+    for match in matches:
+        if "highres/" not in match:
+            similar_img_path = "no match"
+        else:
+            similar_img_path = match
+            break
 
     # Code to plot the similar images
     #st.plot_similar_images(image_path=image_list[i], number_of_images=2)
 
-    # Copy the files to the target folder
-    if output_pairs:
-        final_folder = os.path.join(target_folder, thumb_file_name)
-        os.makedirs(final_folder, exist_ok=True)
-    else:
-        final_folder = target_folder
+    if similar_img_path != "no match":
+        # Copy the files to the target folder
+        if output_pairs:
+            final_folder = os.path.join(target_folder, thumb_file_name)
+            os.makedirs(final_folder, exist_ok=True)
+        else:
+            final_folder = target_folder
 
-    shutil.copy(thumb_file_path, final_folder)
-    shutil.copy(similar_img_path, final_folder)
+        shutil.copy(thumb_file_path, final_folder)
+        shutil.copy(similar_img_path, final_folder)
+
 
     # Transform data into 3 columns
     new_row = pd.DataFrame({
