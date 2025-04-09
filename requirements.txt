@@ -1,0 +1,5 @@
+jupyter
+DeepImageSearch
+matplotlib
+pandas
+tqdm
