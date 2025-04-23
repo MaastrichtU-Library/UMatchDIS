@@ -12,7 +12,7 @@ import uconfig as cfg
 def main():
     # Create output folder if it doesn't exist
     ts = datetime.now().strftime("%Y%m%d_%H-%M-%S")
-    target_folder = cfg.output_folder_name + "_" + ts + "_" + cfg.model_name
+    target_folder = cfg.output_folder_name + "/" + ts + "_" + cfg.model_name
     os.makedirs(target_folder, exist_ok=True)
 
 
