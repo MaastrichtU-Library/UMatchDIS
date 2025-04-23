@@ -12,7 +12,7 @@ import uconfig as cfg
 def main():
     # Create output folder if it doesn't exist
     ts = datetime.now().strftime("%Y%m%d_%H-%M-%S")
-    target_folder = cfg.output_folder_name + "_" + cfg.model_name + "_" + ts
+    target_folder = cfg.output_folder_name + "_" + ts + "_" + cfg.model_name
     os.makedirs(target_folder, exist_ok=True)
 
 
@@ -21,24 +21,24 @@ def main():
     haystack_image_list = Load_Data().from_folder([cfg.input_haystack_folder_name])
     all_images_list = Load_Data().from_folder([cfg.input_needle_folder_name, cfg.input_haystack_folder_name])
 
-    print("Total Reference images count:",len(needle_image_list))
+    print("Total Needle images count:  ",len(needle_image_list))
     print("Total Haystack images count:",len(haystack_image_list))
 
     # Set up the search engine
-    #st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True,image_count=100)
-    # st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True)
-    st = Search_Setup(image_list=all_images_list,model_name=cfg.model_name,pretrained=True)
+    #st = Search_Setup(image_list=needle_image_list, model_name=cfg.model_name, pretrained=True, image_count=100)
+    st = Search_Setup(image_list=needle_image_list, model_name=cfg.model_name, pretrained=True)
+    # st = Search_Setup(image_list=all_images_list, model_name=cfg.model_name, pretrained=True)
 
 
     # Index the reference (needle) images (i.e. Extract features from images and indexes them)
     st.run_index()
 
     # Add to-be-matched (haystack) images to the index (i.e. appends the feature vectors of the new images to the index)
-    # st.add_images_to_index(haystack_image_list)
+    st.add_images_to_index(haystack_image_list)
 
     # Update metadata
-    metadata = st.get_image_metadata_file()
-    #metadata
+    # metadata = st.get_image_metadata_file()
+    # metadata
 
     # Create empty data frame and set colnames
     df = pd.DataFrame(
