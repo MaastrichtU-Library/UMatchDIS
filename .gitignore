@@ -2,4 +2,4 @@ metadata-files
 .venv
 .idea
 sample-data*
-output
+output.old

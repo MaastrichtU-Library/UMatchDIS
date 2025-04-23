@@ -1,5 +1,6 @@
 jupyter
-DeepImageSearch
+#DeepImageSearch
+DeepImageSearch@git+https://github.com/mcoonen/DeepImageSearch@7a90309
 matplotlib
 pandas
 tqdm

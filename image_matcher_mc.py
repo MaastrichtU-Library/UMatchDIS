@@ -6,16 +6,22 @@ from datetime import datetime
 from tqdm import tqdm
 import pandas as pd
 
-
-input_needle_folder_name = "sample-data-200-100/thumbs"
-input_haystack_folder_name = "sample-data-200-100/highres"
-# folder_name = "sample-data2"
+# input_needle_folder_name = "/home/maarten/work/git_workdir/fotocollectie/thumbs_opgeschoond"
+# input_haystack_folder_name = "/media/maarten/WD_BLACK_MC/um_fotocollectie/highres"
+input_needle_folder_name = "sample-data-15-110/thumbs"
+input_haystack_folder_name = "sample-data-15-110/highres"
+# input_needle_folder_name = "sample-data-5-100/thumbs"
+# input_haystack_folder_name = "sample-data-5-100/highres"
 output_folder_name = "output/results"
 output_pairs = True  # Set to True if you want to create subfolders for each pair of images
+similarity_score_threshold = 0.50   # Set a matching threshold. Photo matches with a lower score will be ignored
+model_name = "vgg19"
+# model_name = "caformer_b36.sail_in22k_ft_in1k_384"
+# model_name = "eva02_large_patch14_448.mim_m38m_ft_in22k_in1k"
 
 # Create output folder if it doesn't exist
 ts = datetime.now().strftime("%Y%m%d_%H-%M-%S")
-target_folder = output_folder_name + "_" + ts
+target_folder = output_folder_name + "_" + model_name + "_" + ts
 os.makedirs(target_folder, exist_ok=True)
 
 
@@ -30,14 +36,15 @@ print("Total Haystack images count:",len(haystack_image_list))
 
 # Set up the search engine
 #st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True,image_count=100)
-st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True)
+# st = Search_Setup(image_list=needle_image_list,model_name='vgg19',pretrained=True)
+st = Search_Setup(image_list=all_images_list,model_name=model_name,pretrained=True)
 
 
 # Index the reference (needle) images (i.e. Extract features from images and indexes them)
 st.run_index()
 
 # Add to-be-matched (haystack) images to the index (i.e. appends the feature vectors of the new images to the index)
-st.add_images_to_index(haystack_image_list)
+# st.add_images_to_index(haystack_image_list)
 
 # Update metadata
 metadata = st.get_image_metadata_file()
@@ -48,33 +55,43 @@ df = pd.DataFrame(
     columns=[
         'thumbnail',
         'thumbnail_file',
-        'matched_high-res'
+        'matched_high-res',
+        'match_score'
     ]
 )
 
-# Plot similar images
+# Find similar images
 for i in tqdm(range(0,len(needle_image_list)), desc="Finding similar images"):
     thumb_file_name = os.path.splitext(os.path.basename(needle_image_list[i]))[0]  # without extension
     thumb_file = os.path.basename(needle_image_list[i])                            # with extension
     thumb_file_path = needle_image_list[i]
 
-    # Find 2 similar images and take the last one (the first is always the original thumbnail, because: perfect match))
-    # similar_img_path = list(st.get_similar_images(image_path=needle_image_list[i], number_of_images=2).values())[-1]
+    # Find 5 similar images (ranked from high to low score), loop over the matches and take the highres image with the highest score.
+    # Note that the first match is always the original image, i.e. the 'needle'-image, as that is a perfect match (score = 1)
+    results = st.get_similar_images(image_path=needle_image_list[i], number_of_images=5)
 
-    # Find first 5 similar images and take the first match from the `highres` folder
-    matches = list(st.get_similar_images(image_path=needle_image_list[i], number_of_images=5).values())
     similar_img_path = ""
-    for match in matches:
-        if "highres/" not in match:
+    similar_img_score = 0
+    for match in results:
+        #print(f"Image: {match['image_path']}, Similarity Score: {match['score']}")
+        # TODO: Replace hardcoded 'highres/"
+        if "highres/" not in match['image_path']:
             similar_img_path = "no match"
+            similar_img_score = 0
         else:
-            similar_img_path = match
-            break
+            if match['score'] < similarity_score_threshold:
+                similar_img_path = "low confidence match"
+                similar_img_score = match['score']
+            else:
+                similar_img_path = match['image_path']
+                similar_img_score = match['score']
+                break
 
     # Code to plot the similar images
     #st.plot_similar_images(image_path=image_list[i], number_of_images=2)
 
-    if similar_img_path != "no match":
+    # Copy the original image and matched image to target folder
+    if similar_img_path != "no match" and similar_img_path != "low confidence match":
         # Copy the files to the target folder
         if output_pairs:
             final_folder = os.path.join(target_folder, thumb_file_name)
@@ -90,7 +107,8 @@ for i in tqdm(range(0,len(needle_image_list)), desc="Finding similar images"):
     new_row = pd.DataFrame({
         "thumbnail": [thumb_file_name],
         "thumbnail_file": [thumb_file],
-        "matched_high-res": [os.path.basename(similar_img_path)]
+        "matched_high-res": [os.path.basename(similar_img_path)],
+        "match_score": [similar_img_score]
     })
 
     # Concatenate new row to data frame
