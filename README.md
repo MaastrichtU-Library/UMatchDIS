@@ -7,3 +7,18 @@ It is a wrapper around the [Deep Image Search (DIS)](https://pypi.org/project/De
 > and clustering of dense vectors (...) 
 
 _Read more on https://github.com/TechyNilesh/DeepImageSearch_
+
+### Activate venv
+```bash
+source .venv/bin/activate
+```
+
+### Run with defaults
+```bash
+python3 umatchdis.py
+```
+
+### Run with own config
+```bash
+python3 umatchdis.py --config docker/my_uconfig.py
+```

@@ -7,7 +7,10 @@ from tqdm import tqdm
 import pandas as pd
 
 # Use vars from config file
-import uconfig as cfg
+#import uconfig as cfg
+import argparse
+import importlib.util
+
 
 def main():
     # Create output folder if it doesn't exist
@@ -112,4 +115,14 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run UMatchDIS with a custom config file.")
+    parser.add_argument("--config", type=str, default="uconfig.py", help="Path to the config file.")
+    args = parser.parse_args()
+
+    # Dynamically import (custom) uconfig.py as cfg
+    spec = importlib.util.spec_from_file_location("uconfig", args.config)
+    cfg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cfg)
+
+    # Start the main function
     main()
